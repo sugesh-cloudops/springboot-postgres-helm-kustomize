@@ -87,7 +87,8 @@ jobs:
             git add "$FILE"
             git commit -m "Update image tag to $IMAGE_TAG in kustomize overlay"
 
-            git pull origin feature/kustomize-update --rebase
-            git push origin HEAD:feature/kustomize-update
+            git rebase --abort || true
+            git push origin HEAD:auto/kustomize-update --force-with-lease
+
 
  
