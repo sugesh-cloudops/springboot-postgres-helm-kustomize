@@ -1,6 +1,6 @@
 replicaCount: 1
 
-image:
+image: sugesh23/springboot-postgres:main-12e4fb6
   repository: sugesh23/springboot-postgres
   tag: latest
   pullPolicy: IfNotPresent
@@ -10,7 +10,7 @@ service:
   port: 80
 
 postgres:
-  image: postgres:15-alpine
+  image: sugesh23/springboot-postgres:main-12e4fb6
   dbName: mydb
   storage: 1Gi
   storageClassName: local-path
