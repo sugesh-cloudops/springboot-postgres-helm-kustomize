@@ -87,6 +87,7 @@ This project demonstrates a GitOps-style Continuous Integration (CI) pipeline fo
 ##  Docker Image
 
 - Docker image is built from `/app` and pushed to DockerHub.
+- multi-stage build for efficient image size.
 - Image tag is dynamically generated in CI.
 
 ---
@@ -113,5 +114,20 @@ This project demonstrates a GitOps-style Continuous Integration (CI) pipeline fo
 
 ---
 
+## Output screenshots
+
+GitHub Actions CI Output
+
+Kustomize Overlay Update
+
+kubectl Get Pods
+![alt text](image-1.png)
+![alt text](image.png)
+kubectl Describe Secret (from ESO)
+
+Git Push to Auto Branch
 
 
+![alt text](image-2.png)
+![alt text](image-3.png)
+![alt text](image-4.png)
