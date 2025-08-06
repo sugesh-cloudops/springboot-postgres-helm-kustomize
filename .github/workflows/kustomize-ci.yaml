@@ -13,7 +13,9 @@ jobs:
 
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/springboot-postgres
-      IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
+
+    outputs:
+      image-tag: ${{ steps.set-tag.outputs.tag }}
 
     steps:
       - name: Checkout code
@@ -38,57 +40,54 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push Docker Image
+      - name: Set Image Tag
+        id: set-tag
         run: |
           COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           BRANCH=$(echo "${GITHUB_REF#refs/heads/}" | tr '/' '-')
           TAG="${BRANCH}-${COMMIT_SHA}"
-          
-          docker build -t $IMAGE_NAME:$TAG ./app
-          docker push $IMAGE_NAME:$TAG
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t $IMAGE_NAME:${{ steps.set-tag.outputs.tag }} ./app
+          docker push $IMAGE_NAME:${{ steps.set-tag.outputs.tag }}
+
+  update-kustomize:
+    name: Update Kustomize Overlay
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/springboot-postgres
+      IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
+
+    steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Update image tag in dev overlay
+      - name: Configure git
         run: |
-            FILE="kustomize/overlays/dev/patch-deployment-image.yaml"
+          git config --global user.name "${{ secrets.GIT_USER_NAME }}"
+          git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
 
-            echo "Updating $FILE with image: $IMAGE_NAME:$IMAGE_TAG"
+      - name: Update image tag
+        run: |
+          if [ -z "$IMAGE_TAG" ]; then
+            echo " IMAGE_TAG is empty, exiting."
+            exit 1
+          fi
 
-            sed -i.bak -E "s|image:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" "$FILE"
+          FILE="kustomize/overlays/dev/patch-deployment-image.yaml"
+          echo "Updating $FILE with image: $IMAGE_NAME:$IMAGE_TAG"
+
+          sed -i.bak -E "s|image:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" "$FILE"
+
+          git add "$FILE"
+          git commit -m "Update image tag to $IMAGE_TAG"
+          git push origin HEAD:auto/kustomize-update --force-with-lease
 
 
-  update-kustomize:
-      name: Update Kustomize Overlay
-      needs: build-and-push
-      runs-on: ubuntu-latest
-
-      env:
-        IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/springboot-postgres
-        IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
-
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
-
-        - name: Configure git
-          run: |
-            git config --global user.name "${{ secrets.GIT_USER_NAME }}"
-            git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
-
-        - name: Update image tag in dev overlay
-          run: |
-            FILE="kustomize/overlays/dev/patch-deployment-image.yaml"
-
-            echo "Updating $FILE with image: $IMAGE_NAME:$IMAGE_TAG"
-
-            sed -i.bak -E "s|image:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" "$FILE"
-
-            git add "$FILE"
-            git commit -m "Update image tag to $IMAGE_TAG in kustomize overlay"
-
-            git rebase --abort || true
-            git push origin HEAD:auto/kustomize-update --force-with-lease
 
 
  
