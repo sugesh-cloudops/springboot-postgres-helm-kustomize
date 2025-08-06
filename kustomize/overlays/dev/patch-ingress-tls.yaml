@@ -1,0 +1,12 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: springboot-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    acme.cert-manager.io/http01-ingress-class: nginx
+spec:
+  tls:
+    - hosts:
+        - dev.springboot.local
+      secretName: springboot-tls

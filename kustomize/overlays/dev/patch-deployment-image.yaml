@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: springboot-postgres
+          image: sugesh23/springboot-postgres:latest

@@ -1,0 +1,44 @@
+replicaCount: 1
+
+image:
+  repository: sugesh23/springboot-postgres
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+postgres:
+  image: postgres:15-alpine
+  dbName: mydb
+  storage: 1Gi
+  storageClassName: local-path
+
+  host: postgres-0.postgres.springboot-app.svc.cluster.local
+  port: 5432
+  secretName: postgres-secret
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+  hosts:
+    - host: springboot.example.com
+      paths:
+        - /
+  tls:
+    enabled: true
+    secretName: springboot-tls
