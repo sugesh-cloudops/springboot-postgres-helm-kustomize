@@ -4,18 +4,22 @@ on:
   push:
     branches:
       - feature/development
-      # - development
+      - development
+
+concurrency:
+  group: kustomize-update
+  cancel-in-progress: true
 
 jobs:
   build-and-push:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
 
-    env:
-      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/springboot-postgres
-
     outputs:
       image-tag: ${{ steps.set-tag.outputs.tag }}
+
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/springboot-postgres
 
     steps:
       - name: Checkout code
@@ -40,15 +44,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set Image Tag
+      - name: Set image tag
         id: set-tag
         run: |
           COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           BRANCH=$(echo "${GITHUB_REF#refs/heads/}" | tr '/' '-')
           TAG="${BRANCH}-${COMMIT_SHA}"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Build and Push Docker Image
+      - name: Build and push Docker image
         run: |
           docker build -t $IMAGE_NAME:${{ steps.set-tag.outputs.tag }} ./app
           docker push $IMAGE_NAME:${{ steps.set-tag.outputs.tag }}
@@ -73,27 +77,17 @@ jobs:
 
       - name: Update image tag and push to branch
         run: |
-          if [ -z "$IMAGE_TAG" ]; then
-            echo "IMAGE_TAG is empty, exiting."
-            exit 1
-          fi
-
-          git fetch origin auto/kustomize-update || true
-          git pull origin auto/kustomize-update --rebase || true
-
           FILE="kustomize/overlays/dev/patch-deployment-image.yaml"
+
           echo "Updating $FILE with image: $IMAGE_NAME:$IMAGE_TAG"
 
           sed -i.bak -E "s|image:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" "$FILE"
 
+          git checkout -B auto/kustomize-update
           git add "$FILE"
           git commit -m "Update image tag to $IMAGE_TAG" || echo "No changes to commit"
 
-
-          git push origin HEAD:auto/kustomize-update --force-with-lease
-        env:
-          IMAGE_NAME: yourdockerhub/springboot-postgres
-          IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
+          git push origin auto/kustomize-update --force
 
 
  
