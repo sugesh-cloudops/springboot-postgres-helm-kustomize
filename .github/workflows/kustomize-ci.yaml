@@ -3,7 +3,7 @@ name: Kustomize CI - Build and Push
 on:
   push:
     branches:
-      - feature/**
+      - feature/development
       - development
 
 jobs:
@@ -38,14 +38,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # - name: Build and Push Docker Image
-      #   run: |
-      #     COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-      #     BRANCH=$(echo "${GITHUB_REF#refs/heads/}" | tr '/' '-')
-      #     TAG="${BRANCH}-${COMMIT_SHA}"
+      - name: Build and Push Docker Image
+        run: |
+          COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          BRANCH=$(echo "${GITHUB_REF#refs/heads/}" | tr '/' '-')
+          TAG="${BRANCH}-${COMMIT_SHA}"
           
-      #     docker build -t $IMAGE_NAME:$TAG ./app
-      #     docker push $IMAGE_NAME:$TAG
+          docker build -t $IMAGE_NAME:$TAG ./app
+          docker push $IMAGE_NAME:$TAG
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -88,16 +88,4 @@ jobs:
             git commit -m "Update image tag to $IMAGE_TAG in kustomize overlay"
             git push origin HEAD:feature/kustomize-update
 
-        # - name: Commit and push changes
-        #   run: |
-        #     git config --global user.name "${{ secrets.GIT_USER_NAME }}"
-        #     git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
-
-
-        #     git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git
-
-        #     git add kustomize/overlays/dev/patch-deployment-image.yaml
-        #     git commit -m "Update latest image tag to $IMAGE_TAG" || echo "No changes to commit"
-        #     git push
-        #   env:
-        #     IMAGE_TAG: ${{ github.sha }}
+ 
