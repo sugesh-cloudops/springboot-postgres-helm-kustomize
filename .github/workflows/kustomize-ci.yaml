@@ -38,14 +38,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push Docker Image
-        run: |
-          COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          BRANCH=$(echo "${GITHUB_REF#refs/heads/}" | tr '/' '-')
-          TAG="${BRANCH}-${COMMIT_SHA}"
+      # - name: Build and Push Docker Image
+      #   run: |
+      #     COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+      #     BRANCH=$(echo "${GITHUB_REF#refs/heads/}" | tr '/' '-')
+      #     TAG="${BRANCH}-${COMMIT_SHA}"
           
-          docker build -t $IMAGE_NAME:$TAG ./app
-          docker push $IMAGE_NAME:$TAG
+      #     docker build -t $IMAGE_NAME:$TAG ./app
+      #     docker push $IMAGE_NAME:$TAG
       - name: Checkout code
         uses: actions/checkout@v4
 
