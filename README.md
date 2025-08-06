@@ -117,17 +117,17 @@ This project demonstrates a GitOps-style Continuous Integration (CI) pipeline fo
 ## Output screenshots
 
 GitHub Actions CI Output
+![alt text](/snapshots/image-2.png)
 
-Kustomize Overlay Update
 
 kubectl Get Pods
-![alt text](image-1.png)
-![alt text](image.png)
+![alt text](/snapshots/image-1.png)
+
 kubectl Describe Secret (from ESO)
+![alt text](/snapshots/image.png)
 
 Git Push to Auto Branch
+![alt text](/snapshots/image-3.png)
 
-
-![alt text](image-2.png)
-![alt text](image-3.png)
-![alt text](image-4.png)
+DockerHUb
+![alt text](/snapshots/image-4.png)
