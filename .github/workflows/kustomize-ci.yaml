@@ -13,6 +13,7 @@ jobs:
 
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/springboot-postgres
+      IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
 
     steps:
       - name: Checkout code
@@ -45,33 +46,22 @@ jobs:
           
           docker build -t $IMAGE_NAME:$TAG ./app
           docker push $IMAGE_NAME:$TAG
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  update-kustomize:
-      name: Update Kustomize Overlay
-      needs: build-and-push
-      runs-on: ubuntu-latest
-
-      env:
-        IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/springboot-postgres
-        IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
-
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
-
-        - name: Update image tag in dev overlay
-          run: |
+      - name: Update image tag in dev overlay
+        run: |
             FILE="kustomize/overlays/dev/patch-deployment-image.yaml"
 
             echo "Updating $FILE with image: $IMAGE_NAME:$IMAGE_TAG"
 
             sed -i.bak -E "s|image:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" "$FILE"
 
-        - name: Commit and push changes
-          env:
-            TOKEN: ${{ secrets.GH_PAT }}
-            IMAGE_TAG: ${{ env.IMAGE_TAG }}
-          run: |
+      - name: Commit and push changes
+        env:
+          TOKEN: ${{ secrets.GH_PAT }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+        run: |
             git config --global user.name ${{ secrets.GIT_USER_EMAIL }}
             git config --global user.email ${{ secrets.GIT_USER_NAME }}
 
@@ -81,3 +71,40 @@ jobs:
             git add kustomize/overlays/dev/patch-deployment-image.yaml
             git commit -m "Update latest image tag to $IMAGE_TAG"
             git push
+
+
+  # update-kustomize:
+  #     name: Update Kustomize Overlay
+  #     needs: build-and-push
+  #     runs-on: ubuntu-latest
+
+  #     env:
+  #       IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/springboot-postgres
+  #       IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
+
+  #     steps:
+  #       - name: Checkout code
+  #         uses: actions/checkout@v4
+
+  #       - name: Update image tag in dev overlay
+  #         run: |
+  #           FILE="kustomize/overlays/dev/patch-deployment-image.yaml"
+
+  #           echo "Updating $FILE with image: $IMAGE_NAME:$IMAGE_TAG"
+
+  #           sed -i.bak -E "s|image:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" "$FILE"
+
+  #       - name: Commit and push changes
+  #         env:
+  #           TOKEN: ${{ secrets.GH_PAT }}
+  #           IMAGE_TAG: ${{ env.IMAGE_TAG }}
+  #         run: |
+  #           git config --global user.name ${{ secrets.GIT_USER_EMAIL }}
+  #           git config --global user.email ${{ secrets.GIT_USER_NAME }}
+
+  #           git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git
+
+
+  #           git add kustomize/overlays/dev/patch-deployment-image.yaml
+  #           git commit -m "Update latest image tag to $IMAGE_TAG"
+  #           git push
