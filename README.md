@@ -2,9 +2,9 @@
 
 This project demonstrates a GitOps-style Continuous Integration (CI) pipeline for a **Spring Boot + PostgreSQL** application, leveraging:
 
-	•	 **Kustomize and Helm** for Kubernetes manifests management
-	•	 **GitHub Actions** for building, testing, tagging, and pushing images
-	•	 **DockerHub** as the image registry
+	•	 Kustomize and Helm for Kubernetes manifests management
+	•	 GitHub Actions for building, testing, tagging, and pushing images
+	•	 DockerHub as the image registry
 
  The current focus is **CI only** — with clear automation of image updates through Git. **ArgoCD-based Continuous Deployment (CD)** will be implemented in the next stage.
 ---
@@ -87,6 +87,7 @@ This project demonstrates a GitOps-style Continuous Integration (CI) pipeline fo
 ##  Docker Image
 
 - Docker image is built from `/app` and pushed to DockerHub.
+- multi-stage build for efficient image size.
 - Image tag is dynamically generated in CI.
 
 ---
@@ -113,5 +114,20 @@ This project demonstrates a GitOps-style Continuous Integration (CI) pipeline fo
 
 ---
 
+## Output screenshots
+
+GitHub Actions CI Output
+![alt text](/snapshots/image-2.png)
 
 
+kubectl Get Pods
+![alt text](/snapshots/image-1.png)
+
+kubectl Describe Secret (from ESO)
+![alt text](/snapshots/image.png)
+
+Git Push to Auto Branch
+![alt text](/snapshots/image-3.png)
+
+DockerHUb
+![alt text](/snapshots/image-4.png)
