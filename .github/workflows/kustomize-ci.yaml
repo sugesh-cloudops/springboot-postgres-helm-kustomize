@@ -71,12 +71,15 @@ jobs:
           git config --global user.name "${{ secrets.GIT_USER_NAME }}"
           git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
 
-      - name: Update image tag
+      - name: Update image tag and push to branch
         run: |
           if [ -z "$IMAGE_TAG" ]; then
-            echo " IMAGE_TAG is empty, exiting."
+            echo "IMAGE_TAG is empty, exiting."
             exit 1
           fi
+
+          git fetch origin auto/kustomize-update || true
+          git pull origin auto/kustomize-update --rebase || true
 
           FILE="kustomize/overlays/dev/patch-deployment-image.yaml"
           echo "Updating $FILE with image: $IMAGE_NAME:$IMAGE_TAG"
@@ -84,11 +87,13 @@ jobs:
           sed -i.bak -E "s|image:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" "$FILE"
 
           git add "$FILE"
-          git commit -m "Update image tag to $IMAGE_TAG"
+          git commit -m "Update image tag to $IMAGE_TAG" || echo "No changes to commit"
+
 
           git push origin HEAD:auto/kustomize-update --force-with-lease
-
-
+        env:
+          IMAGE_NAME: yourdockerhub/springboot-postgres
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
 
 
  
