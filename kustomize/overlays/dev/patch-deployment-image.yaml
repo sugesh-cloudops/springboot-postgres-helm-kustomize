@@ -7,4 +7,4 @@ spec:
     spec:
       containers:
         - name: springboot-postgres
-          image: sugesh23/springboot-postgres:latest
+          image: sugesh23/springboot-postgres:feature-development-a6ba9a3
