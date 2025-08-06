@@ -73,5 +73,5 @@ jobs:
             git config --global user.email ${{ secrets.GIT_USER_NAME }}
 
             git add kustomize/overlays/dev/patch-deployment-image.yaml
-            git commit -m "Update image tag to $IMAGE_TAG"
+            git commit -m "Update latest image tag to $IMAGE_TAG"
             git push
