@@ -1,82 +1,82 @@
-# name: Helm CI - Build and Update Values.yaml
+name: Helm CI - Build and Push
 
-# on:
-#   push:
-#     branches:
-#       - main
+on:
+  push:
+    branches:
+      - main
 
-# jobs:
-#   build-and-push:
-#     name: Build and Push Docker Image
-#     runs-on: ubuntu-latest
+jobs:
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
 
-#     outputs:
-#       image-tag: ${{ steps.meta.outputs.image-tag }}
+    outputs:
+      image-tag: ${{ steps.set-tag.outputs.tag }}
 
-#     env:
-#       IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/springboot-postgres
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/springboot-postgres
 
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-#       - name: Set up JDK 17
-#         uses: actions/setup-java@v4
-#         with:
-#           distribution: 'temurin'
-#           java-version: '17'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-#       - name: Build Spring Boot App
-#         working-directory: ./app
-#         run: ./mvnw clean package -DskipTests
+      - name: Build Spring Boot App
+        working-directory: ./app
+        run: ./mvnw clean package -DskipTests
 
-#       - name: Set up Docker Buildx
-#         uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-#       - name: Login to DockerHub
-#         uses: docker/login-action@v3
-#         with:
-#           username: ${{ secrets.DOCKERHUB_USERNAME }}
-#           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-#       - name: Build and Push Docker Image
-#         id: meta
-#         run: |
-#           COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-#           IMAGE_TAG="main-${COMMIT_SHA}"
+      - name: Set Image Tag
+        id: set-tag
+        run: |
+          COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          TAG="main-${COMMIT_SHA}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-#           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-#           echo "::set-output name=image-tag::$IMAGE_TAG"
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t $IMAGE_NAME:${{ steps.set-tag.outputs.tag }} ./app
+          docker push $IMAGE_NAME:${{ steps.set-tag.outputs.tag }}
 
-#           docker build -t $IMAGE_NAME:$IMAGE_TAG ./app
-#           docker push $IMAGE_NAME:$IMAGE_TAG
+  update-values:
+    name: Update Helm values.yaml
+    needs: build-and-push
+    runs-on: ubuntu-latest
 
-#   update-helm-values:
-#     name: Update Helm Values
-#     needs: build-and-push
-#     runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/springboot-postgres
+      IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
+      FILE: helm/springboot-postgres-prod/values.yaml
 
-#     env:
-#       IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
-#       IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/springboot-postgres
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
+      - name: Configure Git
+        run: |
+          git config --global user.name "${{ secrets.GIT_USER_NAME }}"
+          git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
 
-#       - name: Update image.tag in values.yaml
-#         run: |
-#           FILE="helm/springboot-postgres-prod/values.yaml"
-#           echo "Updating $FILE with image tag $IMAGE_TAG"
+      - name: Update values.yaml
+        run: |
+          echo "Updating $FILE with image: $IMAGE_NAME:$IMAGE_TAG"
+          sed -i.bak -E "s|image:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" "$FILE"
 
-#           # Replace the image tag line
-#           sed -i.bak -E "s|tag:.*|tag: \"$IMAGE_TAG\"|" "$FILE"
+          git add "$FILE"
+          git commit -m "Update image tag to $IMAGE_TAG in Helm values.yaml"
 
-#       - name: Commit and Push changes
-#         run: |
-#           git config --global user.name "github-actions"
-#           git config --global user.email "github-actions@github.com"
-
-#           git add helm/springboot-postgres-prod/values.yaml
-#           git commit -m "Update Helm image tag to $IMAGE_TAG"
-#           git push
+          git pull origin auto/helm-update --rebase || true
+          git push origin HEAD:auto/helm-update-prod --force-with-lease
