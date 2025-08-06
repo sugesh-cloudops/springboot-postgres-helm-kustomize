@@ -85,6 +85,8 @@ jobs:
 
           git add "$FILE"
           git commit -m "Update image tag to $IMAGE_TAG"
+
+          git pull origin auto/kustomize-update --rebase || true
           git push origin HEAD:auto/kustomize-update --force-with-lease
 
 
