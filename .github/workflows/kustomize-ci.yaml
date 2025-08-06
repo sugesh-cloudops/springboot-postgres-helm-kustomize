@@ -68,9 +68,14 @@ jobs:
             sed -i.bak -E "s|image:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" "$FILE"
 
         - name: Commit and push changes
+          env:
+            GITHUB_TOKEN: ${{ secrets.GIT_PAT }}
           run: |
             git config --global user.name ${{ secrets.GIT_USER_EMAIL }}
             git config --global user.email ${{ secrets.GIT_USER_NAME }}
+
+            git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git
+
 
             git add kustomize/overlays/dev/patch-deployment-image.yaml
             git commit -m "Update latest image tag to $IMAGE_TAG"
